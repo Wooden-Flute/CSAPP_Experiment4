@@ -1,0 +1,60 @@
+# copy.ys
+# Name:徐文博
+# 学号:1320240207
+# 链表元素复制
+
+
+    .pos 0
+    irmovq stack, %rsp     # 初始化栈指针
+    irmovq src, %rdi   # 传入第一个参数，Source链表头第一个元素地址
+    irmovq dest, %rsi  # 传入第二个参数，Dest链表头第一个元素地址
+    irmovq $3, %rdx     # 传入第三个参数，链表元素个数
+    call copy_list        # 调用copy_list函数
+    halt                  # 程序结束
+
+#------------------------------------------------
+# void copy_list(list_ptr src, list_ptr dest, long n)
+# %rdi = src
+# %rsi = dest
+# %rdx = n
+#------------------------------------------------
+copy_list:
+    xorq %rax, %rax     # long result = 0;
+
+Loop:
+    andq %rdx, %rdx     # len <= 0?
+    je Done            # if (len <= 0) break;
+
+    mrmovq (%rdi), %r10 # long val = *src;
+    rmmovq %r10, (%rsi) # *dest = val;
+    xorq %r10, %rax     # result ^= val;
+
+    irmovq $8, %r11 #因为long类型占8字节，
+                    #因此src++和dest++都要加8
+                    #Y86只支持寄存器相加
+    addq %r11, %rdi   # src++;
+    addq %r11, %rsi   # dest++;
+
+    irmovq $1, %r11   # len--;
+    subq %r11, %rdx
+
+    jmp Loop                    
+
+Done:
+    ret
+
+
+# Source链表和Dest链表的定义
+    .align 8
+src:
+    .quad 0x00a
+    .quad 0x0b0
+    .quad 0xc00
+dest:
+    .quad 0x111
+    .quad 0x222
+    .quad 0x333
+
+
+    .pos 0x200
+stack:

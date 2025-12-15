@@ -1,0 +1,60 @@
+                            | # copy.ys
+                            | # Name:徐文博
+                            | # 学号:1320240207
+                            | # 链表元素复制
+                            | 
+                            | 
+0x000:                      |     .pos 0
+0x000: 30f40002000000000000 |     irmovq stack, %rsp     # 初始化栈指针
+0x00a: 30f78000000000000000 |     irmovq src, %rdi   # 传入第一个参数，Source链表头第一个元素地址
+0x014: 30f69800000000000000 |     irmovq dest, %rsi  # 传入第二个参数，Dest链表头第一个元素地址
+0x01e: 30f20300000000000000 |     irmovq $3, %rdx     # 传入第三个参数，链表元素个数
+0x028: 803200000000000000   |     call copy_list        # 调用copy_list函数
+0x031: 00                   |     halt                  # 程序结束
+                            | 
+                            | #------------------------------------------------
+                            | # void copy_list(list_ptr src, list_ptr dest, long n)
+                            | # %rdi = src
+                            | # %rsi = dest
+                            | # %rdx = n
+                            | #------------------------------------------------
+0x032:                      | copy_list:
+0x032: 6300                 |     xorq %rax, %rax     # long result = 0;
+                            | 
+0x034:                      | Loop:
+0x034: 6222                 |     andq %rdx, %rdx     # len <= 0?
+0x036: 737800000000000000   |     je Done            # if (len <= 0) break;
+                            | 
+0x03f: 50a70000000000000000 |     mrmovq (%rdi), %r10 # long val = *src;
+0x049: 40a60000000000000000 |     rmmovq %r10, (%rsi) # *dest = val;
+0x053: 63a0                 |     xorq %r10, %rax     # result ^= val;
+                            | 
+0x055: 30fb0800000000000000 |     irmovq $8, %r11 #因为long类型占8字节，
+                            |                     #因此src++和dest++都要加8
+                            |                     #Y86只支持寄存器相加
+0x05f: 60b7                 |     addq %r11, %rdi   # src++;
+0x061: 60b6                 |     addq %r11, %rsi   # dest++;
+                            | 
+0x063: 30fb0100000000000000 |     irmovq $1, %r11   # len--;
+0x06d: 61b2                 |     subq %r11, %rdx
+                            | 
+0x06f: 703400000000000000   |     jmp Loop                    
+                            | 
+0x078:                      | Done:
+0x078: 90                   |     ret
+                            | 
+                            | 
+                            | # Source链表和Dest链表的定义
+0x080:                      |     .align 8
+0x080:                      | src:
+0x080: 0a00000000000000     |     .quad 0x00a
+0x088: b000000000000000     |     .quad 0x0b0
+0x090: 000c000000000000     |     .quad 0xc00
+0x098:                      | dest:
+0x098: 1101000000000000     |     .quad 0x111
+0x0a0: 2202000000000000     |     .quad 0x222
+0x0a8: 3303000000000000     |     .quad 0x333
+                            | 
+                            | 
+0x200:                      |     .pos 0x200
+0x200:                      | stack:
