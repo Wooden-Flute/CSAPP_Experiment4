@@ -1,0 +1,60 @@
+                            | # rsum.ys
+                            | # Name:徐文博
+                            | # 学号:1320240207
+                            | 
+                            | 
+0x000:                      |     .pos 0
+0x000: 30f40002000000000000 |     irmovq stack, %rsp    # 初始化栈指针
+0x00a: 30f75000000000000000 |     irmovq ele1, %rdi     # 传入第一个参数，链表头第一个元素地址
+0x014: 801e00000000000000   |     call rsum_list        # 调用rsum_list函数
+0x01d: 00                   |     halt                  # 程序结束
+                            | 
+                            | #------------------------------------------------
+                            | # long rsum_list(list_ptr ls)
+                            | # %rdi = ls
+                            | # 返回指保存在%rax中
+                            | #------------------------------------------------
+0x01e:                      | rsum_list:
+                            |     # if (!ls) return 0;
+0x01e: 6277                 |     andq %rdi,%rdi      # 判断参数ls是否为NULL
+0x020: 734d00000000000000   |     je Empty             # 如果是NULL，跳转到Done，即空链表
+                            |     
+                            |     # long val = ls->value;
+0x029: 50a70000000000000000 |     mrmovq 0(%rdi), %r10  # 取出当前节点的8字节值并放入r10
+                            |                         #这里不用%rdi,是因为下面还要用到%rdi取下一个节点地址
+                            |                         #并call时要用到%rdi传参
+0x033: a0af                 |     pushq %r10         # 将当前节点的值压栈保存,调用者保存
+                            |                        # 以便下面递归调用后再取出使用
+                            | 
+                            |     # long rest = rsum_list(ls->next);
+0x035: 50770800000000000000 |     mrmovq 8(%rdi),%rdi # 取出下一个节点的地址放入rdi中
+0x03f: 801e00000000000000   |     call rsum_list      # 递归调用rsum_list
+                            | 
+                            |     # return val + rest;
+0x048: b0af                 |     popq %r10
+0x04a: 60a0                 |     addq %r10,%rax
+0x04c: 90                   |     ret
+                            | 
+                            |     
+0x04d:                      | Empty:
+0x04d: 6300                 |     xorq %rax,%rax        # 作为返回结果初始化为0
+0x04f: 90                   |     ret
+                            | 
+                            | 
+                            | # 链表元素示例
+0x050:                      |     .align 8
+0x050:                      | ele1:
+0x050: 0a00000000000000     |     .quad 0x00a     # long的大小为8字节（.quad），0x00a是当前节点的值
+0x058: 6000000000000000     |     .quad ele2       # 下一个节点的地址
+0x060:                      | ele2:
+0x060: b000000000000000     |     .quad 0x0b0
+0x068: 7000000000000000     |     .quad ele3
+0x070:                      | ele3:
+0x070: 000c000000000000     |     .quad 0xc00
+0x078: 0000000000000000     |     .quad 0
+                            | 
+                            | 
+                            | # 栈区
+0x200:                      |     .pos 0x200
+0x200:                      | stack:
+                            | 

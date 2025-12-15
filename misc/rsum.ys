@@ -1,0 +1,60 @@
+# rsum.ys
+# Name:徐文博
+# 学号:1320240207
+
+
+    .pos 0
+    irmovq stack, %rsp    # 初始化栈指针
+    irmovq ele1, %rdi     # 传入第一个参数，链表头第一个元素地址
+    call rsum_list        # 调用rsum_list函数
+    halt                  # 程序结束
+
+#------------------------------------------------
+# long rsum_list(list_ptr ls)
+# %rdi = ls
+# 返回指保存在%rax中
+#------------------------------------------------
+rsum_list:
+    # if (!ls) return 0;
+    andq %rdi,%rdi      # 判断参数ls是否为NULL
+    je Empty             # 如果是NULL，跳转到Done，即空链表
+    
+    # long val = ls->value;
+    mrmovq 0(%rdi), %r10  # 取出当前节点的8字节值并放入r10
+                        #这里不用%rdi,是因为下面还要用到%rdi取下一个节点地址
+                        #并call时要用到%rdi传参
+    pushq %r10         # 将当前节点的值压栈保存,调用者保存
+                       # 以便下面递归调用后再取出使用
+
+    # long rest = rsum_list(ls->next);
+    mrmovq 8(%rdi),%rdi # 取出下一个节点的地址放入rdi中
+    call rsum_list      # 递归调用rsum_list
+
+    # return val + rest;
+    popq %r10
+    addq %r10,%rax
+    ret
+
+    
+Empty:
+    xorq %rax,%rax        # 作为返回结果初始化为0
+    ret
+
+
+# 链表元素示例
+    .align 8
+ele1:
+    .quad 0x00a     # long的大小为8字节（.quad），0x00a是当前节点的值
+    .quad ele2       # 下一个节点的地址
+ele2:
+    .quad 0x0b0
+    .quad ele3
+ele3:
+    .quad 0xc00
+    .quad 0
+
+
+# 栈区
+    .pos 0x200
+stack:
+
