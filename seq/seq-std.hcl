@@ -1,3 +1,4 @@
+
 #/* $begin seq-all-hcl */
 ####################################################################
 #  HCL Description of Control for Single Cycle Y86-64 Processor SEQ   #
@@ -33,6 +34,7 @@ wordsig ICALL	'I_CALL'
 wordsig IRET	'I_RET'
 wordsig IPUSHQ	'I_PUSHQ'
 wordsig IPOPQ	'I_POPQ'
+
 
 ##### Symbolic represenations of Y86-64 function codes                  #####
 wordsig FNONE    'F_NONE'        # Default function code
@@ -98,8 +100,8 @@ word ifun = [
 ];
 
 bool instr_valid = icode in 
-	{ INOP, IHALT, IRRMOVQ, IIRMOVQ, IRMMOVQ, IMRMOVQ,
-	       IOPQ, IJXX, ICALL, IRET, IPUSHQ, IPOPQ };
+    { INOP, IHALT, IRRMOVQ, IIRMOVQ, IRMMOVQ, IMRMOVQ,
+      IOPQ, IJXX, ICALL, IRET, IPUSHQ, IPOPQ };
 
 # Does fetched instruction require a regid byte?
 bool need_regids =
@@ -121,17 +123,17 @@ word srcA = [
 
 ## What register should be used as the B source?
 word srcB = [
-	icode in { IOPQ, IRMMOVQ, IMRMOVQ  } : rB;
+	icode in { IOPQ, IRMMOVQ, IMRMOVQ } : rB;
 	icode in { IPUSHQ, IPOPQ, ICALL, IRET } : RRSP;
 	1 : RNONE;  # Don't need register
 ];
 
 ## What register should be used as the E destination?
 word dstE = [
-	icode in { IRRMOVQ } && Cnd : rB;
-	icode in { IIRMOVQ, IOPQ} : rB;
-	icode in { IPUSHQ, IPOPQ, ICALL, IRET } : RRSP;
-	1 : RNONE;  # Don't write any register
+    icode in { IRRMOVQ } && Cnd : rB;
+    icode in { IIRMOVQ, IOPQ} : rB;
+    icode in { IPUSHQ, IPOPQ, ICALL, IRET } : RRSP;
+    1 : RNONE;  # Don't write any register
 ];
 
 ## What register should be used as the M destination?
@@ -144,19 +146,19 @@ word dstM = [
 
 ## Select input A to ALU
 word aluA = [
-	icode in { IRRMOVQ, IOPQ } : valA;
-	icode in { IIRMOVQ, IRMMOVQ, IMRMOVQ } : valC;
-	icode in { ICALL, IPUSHQ } : -8;
-	icode in { IRET, IPOPQ } : 8;
-	# Other instructions don't need ALU
+    icode in { IRRMOVQ, IOPQ } : valA;
+    icode in { IIRMOVQ, IRMMOVQ, IMRMOVQ } : valC;
+    icode in { ICALL, IPUSHQ } : -8;
+    icode in { IRET, IPOPQ } : 8;
+    # Other instructions don't need ALU
 ];
 
 ## Select input B to ALU
 word aluB = [
-	icode in { IRMMOVQ, IMRMOVQ, IOPQ, ICALL, 
-		      IPUSHQ, IRET, IPOPQ } : valB;
-	icode in { IRRMOVQ, IIRMOVQ } : 0;
-	# Other instructions don't need ALU
+    icode in { IRMMOVQ, IMRMOVQ, IOPQ, ICALL, 
+              IPUSHQ, IRET, IPOPQ } : valB;
+    icode in { IRRMOVQ, IIRMOVQ } : 0;
+    # Other instructions don't need ALU
 ];
 
 ## Set the ALU function
