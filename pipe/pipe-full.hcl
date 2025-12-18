@@ -1,3 +1,6 @@
+# Name: 徐文博
+# ID：1320240207
+
 #/* $begin pipe-all-hcl */
 ####################################################################
 #    HCL Description of Control for Pipelined Y86-64 Processor     #
