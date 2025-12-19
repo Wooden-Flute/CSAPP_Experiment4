@@ -43,28 +43,33 @@ Loop4:
 	rmmovq %r12, 16(%rsi)     # store val2
 	rmmovq %r13, 24(%rsi)     # store val3
 
+
 	#-------check positives-------
+	xorq %r14, %r14          # local_count = 0
+
 	andq %r10, %r10       # val0 <= 0?
 	jle L0_Npos		 # if so, goto L0_Npos
-	iaddq $1, %rax       # count++
+	iaddq $1, %r14       # count++
 
 L0_Npos:
 	andq %r11, %r11       # val1 <= 0?
 	jle L1_Npos		 # if so, goto L1_Npos
-	iaddq $1, %rax       # count++
+	iaddq $1, %r14       # count++
 
 L1_Npos:
 	andq %r12, %r12 	 # val2 <= 0?
 	jle L2_Npos		 # if so, goto L2_Npos
-	iaddq $1, %rax    # count++
+	iaddq $1, %r14    # count++
 
 L2_Npos:
 	andq %r13, %r13 	 # val3 <= 0?
 	jle L3_Npos      # if so, goto L3_Npos
-	iaddq $1, %rax    # count++
+	iaddq $1, %r14    # count++
 
 L3_Npos:
 	#-------update pointers and counters-------	
+	addq %r14, %rax  # count += local_count
+
 	iaddq $32, %rdi  # src += 4 * 8
 	iaddq $32, %rsi  # dst += 4 * 8
 	iaddq $-4, %rdx  # len -= 4

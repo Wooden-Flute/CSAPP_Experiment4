@@ -32,7 +32,7 @@
                             | 	# Loop header
 0x032: 6300                 | 	xorq %rax,%rax		# count = 0;
 0x034: 6222                 | 	andq %rdx,%rdx		# len <= 0?
-0x036: 717a01000000000000   | 	jle Done		# if so, goto Done:
+0x036: 717e01000000000000   | 	jle Done		# if so, goto Done:
                             | 
                             | ###################################################################
                             | # 4-way循环展开
@@ -41,7 +41,7 @@
 0x03f:                      | Loop4_Check:
 0x03f: 2023                 | 	rrmovq %rdx, %rbx  # rbx = len
 0x041: c0f3fcffffffffffffff | 	iaddq $-4, %rbx   # rbx = len - 4
-0x04b: 721f01000000000000   | 	jl Remain        # if len < 4 goto handle remainder
+0x04b: 722301000000000000   | 	jl Remain        # if len < 4 goto handle remainder
                             | 
 0x054:                      | Loop4:
                             | 	#-------load 4 values from src-------
@@ -57,61 +57,65 @@
 0x09a: 40d61800000000000000 | 	rmmovq %r13, 24(%rsi)     # store val3
                             | 
                             | 	#-------check positives-------
-0x0a4: 62aa                 | 	andq %r10, %r10       # val0 <= 0?
-0x0a6: 71b900000000000000   | 	jle L0_Npos		 # if so, goto L0_Npos
-0x0af: c0f00100000000000000 | 	iaddq $1, %rax       # count++
+0x0a4: 63ee                 | 	xorq %r14, %r14          # local_count = 0
                             | 
-0x0b9:                      | L0_Npos:
-0x0b9: 62bb                 | 	andq %r11, %r11       # val1 <= 0?
-0x0bb: 71ce00000000000000   | 	jle L1_Npos		 # if so, goto L1_Npos
-0x0c4: c0f00100000000000000 | 	iaddq $1, %rax       # count++
+0x0a6: 62aa                 | 	andq %r10, %r10       # val0 <= 0?
+0x0a8: 71bb00000000000000   | 	jle L0_Npos		 # if so, goto L0_Npos
+0x0b1: c0fe0100000000000000 | 	iaddq $1, %r14       # count++
                             | 
-0x0ce:                      | L1_Npos:
-0x0ce: 62cc                 | 	andq %r12, %r12 	 # val2 <= 0?
-0x0d0: 71e300000000000000   | 	jle L2_Npos		 # if so, goto L2_Npos
-0x0d9: c0f00100000000000000 | 	iaddq $1, %rax    # count++
+0x0bb:                      | L0_Npos:
+0x0bb: 62bb                 | 	andq %r11, %r11       # val1 <= 0?
+0x0bd: 71d000000000000000   | 	jle L1_Npos		 # if so, goto L1_Npos
+0x0c6: c0fe0100000000000000 | 	iaddq $1, %r14       # count++
                             | 
-0x0e3:                      | L2_Npos:
-0x0e3: 62dd                 | 	andq %r13, %r13 	 # val3 <= 0?
-0x0e5: 71f800000000000000   | 	jle L3_Npos      # if so, goto L3_Npos
-0x0ee: c0f00100000000000000 | 	iaddq $1, %rax    # count++
+0x0d0:                      | L1_Npos:
+0x0d0: 62cc                 | 	andq %r12, %r12 	 # val2 <= 0?
+0x0d2: 71e500000000000000   | 	jle L2_Npos		 # if so, goto L2_Npos
+0x0db: c0fe0100000000000000 | 	iaddq $1, %r14    # count++
                             | 
-0x0f8:                      | L3_Npos:
+0x0e5:                      | L2_Npos:
+0x0e5: 62dd                 | 	andq %r13, %r13 	 # val3 <= 0?
+0x0e7: 71fa00000000000000   | 	jle L3_Npos      # if so, goto L3_Npos
+0x0f0: c0fe0100000000000000 | 	iaddq $1, %r14    # count++
+                            | 
+0x0fa:                      | L3_Npos:
                             | 	#-------update pointers and counters-------	
-0x0f8: c0f72000000000000000 | 	iaddq $32, %rdi  # src += 4 * 8
-0x102: c0f62000000000000000 | 	iaddq $32, %rsi  # dst += 4 * 8
-0x10c: c0f2fcffffffffffffff | 	iaddq $-4, %rdx  # len -= 4
-0x116: 703f00000000000000   | 	jmp Loop4_Check
+0x0fa: 60e0                 | 	addq %r14, %rax  # count += local_count
+                            | 
+0x0fc: c0f72000000000000000 | 	iaddq $32, %rdi  # src += 4 * 8
+0x106: c0f62000000000000000 | 	iaddq $32, %rsi  # dst += 4 * 8
+0x110: c0f2fcffffffffffffff | 	iaddq $-4, %rdx  # len -= 4
+0x11a: 703f00000000000000   | 	jmp Loop4_Check
                             | 
                             | ###################################################################
                             | # handle remainder (len < 4)
-0x11f:                      | Remain:
-0x11f: 6222                 | 	andq %rdx,%rdx		# len <= 0?
-0x121: 717a01000000000000   | 	jle Done		# if so, goto Done:
+0x123:                      | Remain:
+0x123: 6222                 | 	andq %rdx,%rdx		# len <= 0?
+0x125: 717e01000000000000   | 	jle Done		# if so, goto Done:
                             | 
-0x12a:                      | Loop1:
-0x12a: 50a70000000000000000 | 	mrmovq (%rdi), %r10	# read val from src...
-0x134: 40a60000000000000000 | 	rmmovq %r10, (%rsi)	# ...and store it to
+0x12e:                      | Loop1:
+0x12e: 50a70000000000000000 | 	mrmovq (%rdi), %r10	# read val from src...
+0x138: 40a60000000000000000 | 	rmmovq %r10, (%rsi)	# ...and store it to
                             | 
-0x13e: 62aa                 | 	andq %r10, %r10		# val <= 0?
-0x140: 715301000000000000   | 	jle Rpos		# if so, goto Rpos:
-0x149: c0f00100000000000000 | 	iaddq $1, %rax  # count++
-0x153:                      | Rpos:
-0x153: c0f70800000000000000 | 	iaddq $8, %rdi  # src++
-0x15d: c0f60800000000000000 | 	iaddq $8, %rsi  # dst++
-0x167: c0f2ffffffffffffffff | 	iaddq $-1, %rdx  # len--
-0x171: 762a01000000000000   | 	jg Loop1			# if so, goto Loop1:
+0x142: 62aa                 | 	andq %r10, %r10		# val <= 0?
+0x144: 715701000000000000   | 	jle Rpos		# if so, goto Rpos:
+0x14d: c0f00100000000000000 | 	iaddq $1, %rax  # count++
+0x157:                      | Rpos:
+0x157: c0f70800000000000000 | 	iaddq $8, %rdi  # src++
+0x161: c0f60800000000000000 | 	iaddq $8, %rsi  # dst++
+0x16b: c0f2ffffffffffffffff | 	iaddq $-1, %rdx  # len--
+0x175: 762e01000000000000   | 	jg Loop1			# if so, goto Loop1:
                             | 
                             | ##################################################################
                             | # Do not modify the following section of code
                             | # Function epilogue.
-0x17a:                      | Done:
-0x17a: 90                   | 	ret
+0x17e:                      | Done:
+0x17e: 90                   | 	ret
                             | ##################################################################
                             | # Keep the following label at the end of your function
-0x17b:                      | End:
+0x17f:                      | End:
                             | #/* $end ncopy-ys */
-0x17b:                      | EndFun:
+0x17f:                      | EndFun:
                             | 
                             | ###############################
                             | # Source and destination blocks 
@@ -119,8 +123,8 @@
 0x180:                      | 	.align 8
 0x180:                      | src:
 0x180: ffffffffffffffff     | 	.quad -1
-0x188: 0200000000000000     | 	.quad 2
-0x190: fdffffffffffffff     | 	.quad -3
+0x188: feffffffffffffff     | 	.quad -2
+0x190: 0300000000000000     | 	.quad 3
 0x198: 0400000000000000     | 	.quad 4
 0x1a0: fadebc0000000000     | 	.quad 0xbcdefa # This shouldn't get moved
                             | 
