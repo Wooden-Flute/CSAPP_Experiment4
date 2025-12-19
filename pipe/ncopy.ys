@@ -21,17 +21,74 @@ ncopy:
 	andq %rdx,%rdx		# len <= 0?
 	jle Done		# if so, goto Done:
 
-Loop:	mrmovq (%rdi), %r10	# read val from src...
-	rmmovq %r10, (%rsi)	# ...and store it to dst
+###################################################################
+# 4-way循环展开
+###################################################################
+
+Loop4_Check:
+	rrmovq %rdx, %rbx  # rbx = len
+	iaddq $-4, %rbx   # rbx = len - 4
+	jl Remain        # if len < 4 goto handle remainder
+
+Loop4:
+	#-------load 4 values from src-------
+	mrmovq (%rdi), %r10      # load val0
+	mrmovq 8(%rdi), %r11     # load val1
+	mrmovq 16(%rdi), %r12    # load val2
+	mrmovq 24(%rdi), %r13    # load val3
+
+	#-------store 4 values to dst-------
+	rmmovq %r10, (%rsi)        # store val0
+	rmmovq %r11, 8(%rsi)      # store val1
+	rmmovq %r12, 16(%rsi)     # store val2
+	rmmovq %r13, 24(%rsi)     # store val3
+
+	#-------check positives-------
+	andq %r10, %r10       # val0 <= 0?
+	jle L0_Npos		 # if so, goto L0_Npos
+	iaddq $1, %rax       # count++
+
+L0_Npos:
+	andq %r11, %r11       # val1 <= 0?
+	jle L1_Npos		 # if so, goto L1_Npos
+	iaddq $1, %rax       # count++
+
+L1_Npos:
+	andq %r12, %r12 	 # val2 <= 0?
+	jle L2_Npos		 # if so, goto L2_Npos
+	iaddq $1, %rax    # count++
+
+L2_Npos:
+	andq %r13, %r13 	 # val3 <= 0?
+	jle L3_Npos      # if so, goto L3_Npos
+	iaddq $1, %rax    # count++
+
+L3_Npos:
+	#-------update pointers and counters-------	
+	iaddq $32, %rdi  # src += 4 * 8
+	iaddq $32, %rsi  # dst += 4 * 8
+	iaddq $-4, %rdx  # len -= 4
+	jmp Loop4_Check
+
+###################################################################
+# handle remainder (len < 4)
+Remain:
+	andq %rdx,%rdx		# len <= 0?
+	jle Done		# if so, goto Done:
+
+Loop1:
+	mrmovq (%rdi), %r10	# read val from src...
+	rmmovq %r10, (%rsi)	# ...and store it to
+
 	andq %r10, %r10		# val <= 0?
-	jle Npos		# if so, goto Npos:
+	jle Rpos		# if so, goto Rpos:
 	iaddq $1, %rax  # count++
-Npos:	
-	iaddq $-1, %rdx  # len--
+Rpos:
 	iaddq $8, %rdi  # src++
 	iaddq $8, %rsi  # dst++
-	andq %rdx,%rdx		# len > 0?
-	jg Loop			# if so, goto Loop:
+	iaddq $-1, %rdx  # len--
+	jg Loop1			# if so, goto Loop1:
+
 ##################################################################
 # Do not modify the following section of code
 # Function epilogue.
