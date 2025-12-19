@@ -1,105 +1,124 @@
 #/* $begin ncopy-ys */
 ##################################################################
-# ncopy.ys - Copy a src block of len words to dst.
+# ncopy.ys - 8-way unrolled version for Y86 architecture
+# Copy a src block of len words to dst.
 # Return the number of positive words (>0) contained in src.
 #
-# Include your name and ID here.
-# Name:徐文博
-# ID:1320240207
-# Describe how and why you modified the baseline code.
-#
+# Name: 徐文博
+# ID: 1320240207
 ##################################################################
-# Do not modify this portion
-# Function prologue.
+
 # %rdi = src, %rsi = dst, %rdx = len
 ncopy:
+##################################################################
+# init
+    xorq %rax, %rax          # global count = 0
+    andq %rdx, %rdx
+    jle Done
 
 ##################################################################
-# You can modify this portion
-	# Loop header
-	xorq %rax,%rax		# count = 0;
-	andq %rdx,%rdx		# len <= 0?
-	jle Done		# if so, goto Done:
+# 8-way loop
+##################################################################
+Loop8_Check:
+    rrmovq %rdx, %rbx        # rbx = len
+    iaddq $-8, %rbx          # rbx = len - 8
+    jl Remain                # if len < 8 -> remainder
 
-###################################################################
-# 4-way循环展开
-###################################################################
+Loop8:
+    # ---- load 8 values ----
+    mrmovq  0(%rdi), %r10
+    mrmovq  8(%rdi), %r11
+    mrmovq 16(%rdi), %r12
+    mrmovq 24(%rdi), %r13
+    mrmovq 32(%rdi), %r14
+    # Use temporaries for the last three loads to avoid clobbering
+    # the pointers (%rdi,%rsi) and length (%rdx).
+    # Note: simulator only provides registers up to %r14, so use %rbx
+    # (which is safe to reuse here because Loop8_Check overwrites it
+    # before each iteration) instead of %r15.
+    mrmovq 40(%rdi), %rbx
+    mrmovq 48(%rdi), %r8
+    mrmovq 56(%rdi), %rcx
 
-Loop4_Check:
-	rrmovq %rdx, %rbx  # rbx = len
-	iaddq $-4, %rbx   # rbx = len - 4
-	jl Remain        # if len < 4 goto handle remainder
+    # ---- store 8 ----
+    rmmovq %r10,  0(%rsi)
+    rmmovq %r11,  8(%rsi)
+    rmmovq %r12, 16(%rsi)
+    rmmovq %r13, 24(%rsi)
+    rmmovq %r14, 32(%rsi)
+    rmmovq %rbx, 40(%rsi)
+    rmmovq %r8,  48(%rsi)
+    rmmovq %rcx, 56(%rsi)
 
-Loop4:
-	#-------load 4 values from src-------
-	mrmovq (%rdi), %r10      # load val0
-	mrmovq 8(%rdi), %r11     # load val1
-	mrmovq 16(%rdi), %r12    # load val2
-	mrmovq 24(%rdi), %r13    # load val3
+    # ---- local count (reduce rax dependency) ----
+    # Use %r9 as local_count to avoid clobbering loaded values.
+    xorq %r9, %r9          # local_count = 0
 
-	#-------store 4 values to dst-------
-	rmmovq %r10, (%rsi)        # store val0
-	rmmovq %r11, 8(%rsi)      # store val1
-	rmmovq %r12, 16(%rsi)     # store val2
-	rmmovq %r13, 24(%rsi)     # store val3
+    andq %r10, %r10
+    jle L0
+    iaddq $1, %r9
+L0:
+    andq %r11, %r11
+    jle L1
+    iaddq $1, %r9
+L1:
+    andq %r12, %r12
+    jle L2
+    iaddq $1, %r9
+L2:
+    andq %r13, %r13
+    jle L3
+    iaddq $1, %r9
+L3:
+    andq %r14, %r14
+    jle L4
+    iaddq $1, %r9
+L4:
+    andq %rbx, %rbx
+    jle L5
+    iaddq $1, %r9
+L5:
+    andq %r8, %r8
+    jle L6
+    iaddq $1, %r9
+L6:
+    andq %rcx, %rcx
+    jle L7
+    iaddq $1, %r9
+L7:
 
+    # ---- merge local count ----
+    addq %r9, %rax
 
-	#-------check positives-------
-	xorq %r14, %r14          # local_count = 0
+    # ---- update pointers & len ----
+    iaddq $64, %rdi          # src += 8 * 8
+    iaddq $64, %rsi          # dst += 8 * 8
+    iaddq $-8, %rdx          # len -= 8
+    jmp Loop8_Check
 
-	andq %r10, %r10       # val0 <= 0?
-	jle L0_Npos		 # if so, goto L0_Npos
-	iaddq $1, %r14       # count++
-
-L0_Npos:
-	andq %r11, %r11       # val1 <= 0?
-	jle L1_Npos		 # if so, goto L1_Npos
-	iaddq $1, %r14       # count++
-
-L1_Npos:
-	andq %r12, %r12 	 # val2 <= 0?
-	jle L2_Npos		 # if so, goto L2_Npos
-	iaddq $1, %r14    # count++
-
-L2_Npos:
-	andq %r13, %r13 	 # val3 <= 0?
-	jle L3_Npos      # if so, goto L3_Npos
-	iaddq $1, %r14    # count++
-
-L3_Npos:
-	#-------update pointers and counters-------	
-	addq %r14, %rax  # count += local_count
-
-	iaddq $32, %rdi  # src += 4 * 8
-	iaddq $32, %rsi  # dst += 4 * 8
-	iaddq $-4, %rdx  # len -= 4
-	jmp Loop4_Check
-
-###################################################################
-# handle remainder (len < 4)
+##################################################################
+# remainder loop (1-way)
+##################################################################
 Remain:
-	andq %rdx,%rdx		# len <= 0?
-	jle Done		# if so, goto Done:
+    andq %rdx, %rdx
+    jle Done
 
 Loop1:
-	mrmovq (%rdi), %r10	# read val from src...
-	rmmovq %r10, (%rsi)	# ...and store it to
+    mrmovq 0(%rdi), %r10
+    rmmovq %r10, 0(%rsi)
 
-	andq %r10, %r10		# val <= 0?
-	jle Rpos		# if so, goto Rpos:
-	iaddq $1, %rax  # count++
-Rpos:
-	iaddq $8, %rdi  # src++
-	iaddq $8, %rsi  # dst++
-	iaddq $-1, %rdx  # len--
-	jg Loop1			# if so, goto Loop1:
+    andq %r10, %r10
+    jle R0
+    iaddq $1, %rax
+R0:
+    iaddq $8,  %rdi
+    iaddq $8,  %rsi
+    iaddq $-1, %rdx
+    jg Loop1
 
 ##################################################################
-# Do not modify the following section of code
-# Function epilogue.
 Done:
-	ret
+    ret
 ##################################################################
-# Keep the following label at the end of your function
 End:
 #/* $end ncopy-ys */
