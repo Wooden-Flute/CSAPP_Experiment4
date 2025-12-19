@@ -38,70 +38,64 @@ Loop8_Check:
     jl Remain                # if len < 8 -> remainder
 
 Loop8:
-    # ---- load 8 values ----
-    mrmovq  0(%rdi), %r10
-    mrmovq  8(%rdi), %r11
-    mrmovq 16(%rdi), %r12
-    mrmovq 24(%rdi), %r13
-    mrmovq 32(%rdi), %r14
-    # Use temporaries for the last three loads to avoid clobbering
-    # the pointers (%rdi,%rsi) and length (%rdx).
-    # Note: simulator only provides registers up to %r14, so use %rbx
-    # (which is safe to reuse here because Loop8_Check overwrites it
-    # before each iteration) instead of %r15.
-    mrmovq 40(%rdi), %rbx
-    mrmovq 48(%rdi), %r8
+    # ---- load 8 ----
+    mrmovq  0(%rdi), %r8
+    mrmovq  8(%rdi), %r9
+    mrmovq 16(%rdi), %r10
+    mrmovq 24(%rdi), %r11
+    mrmovq 32(%rdi), %r12
+    mrmovq 40(%rdi), %r13
+    mrmovq 48(%rdi), %rbx
     mrmovq 56(%rdi), %rcx
 
     # ---- store 8 ----
-    rmmovq %r10,  0(%rsi)
-    rmmovq %r11,  8(%rsi)
-    rmmovq %r12, 16(%rsi)
-    rmmovq %r13, 24(%rsi)
-    rmmovq %r14, 32(%rsi)
-    rmmovq %rbx, 40(%rsi)
-    rmmovq %r8,  48(%rsi)
+    rmmovq %r8,  0(%rsi)
+    rmmovq %r9,  8(%rsi)
+    rmmovq %r10, 16(%rsi)
+    rmmovq %r11, 24(%rsi)
+    rmmovq %r12, 32(%rsi)
+    rmmovq %r13, 40(%rsi)
+    rmmovq %rbx, 48(%rsi)
     rmmovq %rcx, 56(%rsi)
 
     # ---- local count (reduce rax dependency) ----
-    # Use %r9 as local_count to avoid clobbering loaded values.
-    xorq %r9, %r9          # local_count = 0
+    xorq %r14, %r14          # local_count = 0
 
-    andq %r10, %r10
+    andq %r8, %r8            # Check r8
     jle L0
-    iaddq $1, %r9
+    iaddq $1, %r14
 L0:
-    andq %r11, %r11
+    andq %r9, %r9            # Check r9
     jle L1
-    iaddq $1, %r9
+    iaddq $1, %r14
 L1:
-    andq %r12, %r12
+    andq %r10, %r10          # Check r10
     jle L2
-    iaddq $1, %r9
+    iaddq $1, %r14
 L2:
-    andq %r13, %r13
+    andq %r11, %r11          # Check r11
     jle L3
-    iaddq $1, %r9
+    iaddq $1, %r14
 L3:
-    andq %r14, %r14
+    andq %r12, %r12          # Check r12
     jle L4
-    iaddq $1, %r9
+    iaddq $1, %r14
 L4:
-    andq %rbx, %rbx
+    andq %r13, %r13          # Check r13
     jle L5
-    iaddq $1, %r9
+    iaddq $1, %r14
 L5:
-    andq %r8, %r8
+    andq %rbx, %rbx          # Check rbx
     jle L6
-    iaddq $1, %r9
+    iaddq $1, %r14
 L6:
-    andq %rcx, %rcx
+    andq %rcx, %rcx          # Check rcx
     jle L7
-    iaddq $1, %r9
+    iaddq $1, %r14
 L7:
 
     # ---- merge local count ----
-    addq %r9, %rax
+    addq %r14, %rax
 
     # ---- update pointers & len ----
     iaddq $64, %rdi          # src += 8 * 8
@@ -145,65 +139,65 @@ src:
 	.quad -1
 	.quad -2
 	.quad 3
-	.quad 4
-	.quad -5
+	.quad -4
+	.quad 5
 	.quad -6
-	.quad -7
-	.quad -8
-	.quad 9
+	.quad 7
+	.quad 8
+	.quad -9
 	.quad 10
-	.quad 11
+	.quad -11
 	.quad 12
 	.quad 13
 	.quad -14
 	.quad 15
 	.quad -16
-	.quad 17
+	.quad -17
 	.quad -18
 	.quad -19
-	.quad -20
-	.quad -21
-	.quad 22
+	.quad 20
+	.quad 21
+	.quad -22
 	.quad -23
 	.quad 24
-	.quad 25
+	.quad -25
 	.quad -26
-	.quad -27
+	.quad 27
 	.quad 28
 	.quad 29
-	.quad -30
-	.quad 31
-	.quad -32
+	.quad 30
+	.quad -31
+	.quad 32
 	.quad -33
 	.quad 34
 	.quad 35
 	.quad 36
 	.quad 37
 	.quad -38
-	.quad 39
-	.quad -40
-	.quad 41
-	.quad 42
+	.quad -39
+	.quad 40
+	.quad -41
+	.quad -42
 	.quad -43
 	.quad -44
-	.quad -45
-	.quad -46
-	.quad 47
+	.quad 45
+	.quad 46
+	.quad -47
 	.quad -48
 	.quad -49
-	.quad 50
-	.quad 51
+	.quad -50
+	.quad -51
 	.quad -52
 	.quad 53
-	.quad -54
-	.quad 55
+	.quad 54
+	.quad -55
 	.quad 56
-	.quad -57
+	.quad 57
 	.quad 58
 	.quad 59
-	.quad -60
-	.quad 61
-	.quad -62
+	.quad 60
+	.quad -61
+	.quad 62
 	.quad -63
 	.quad 0xbcdefa # This shouldn't get moved
 
